@@ -1,0 +1,22 @@
+{
+  "name": "noddity-render-static",
+  "version": "1.0.0",
+  "description": "Generate static HTML from Noddity posts",
+  "main": "index.js",
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TehShrike/noddity-render-static.git"
+  },
+  "keywords": [
+    "noddity"
+  ],
+  "author": "TehShrike",
+  "license": "WTFPL",
+  "bugs": {
+    "url": "https://github.com/TehShrike/noddity-render-static/issues"
+  },
+  "homepage": "https://github.com/TehShrike/noddity-render-static#readme"
+}
