@@ -18,5 +18,19 @@
   "bugs": {
     "url": "https://github.com/TehShrike/noddity-render-static/issues"
   },
-  "homepage": "https://github.com/TehShrike/noddity-render-static#readme"
+  "homepage": "https://github.com/TehShrike/noddity-render-static#readme",
+  "devDependencies": {
+    "level-mem": "0.18.0",
+    "noddity-butler": "2.1.1",
+    "noddity-linkifier": "2.1.0",
+    "tape": "4.2.0"
+  },
+  "dependencies": {
+    "async-each": "0.1.6",
+    "cheerio": "0.19.0",
+    "dezalgo": "1.0.3",
+    "noddity-renderer": "4.0.0-alpha.1",
+    "ractive": "0.7.3",
+    "xtend": "4.0.0"
+  }
 }
