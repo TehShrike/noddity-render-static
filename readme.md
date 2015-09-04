@@ -41,3 +41,5 @@ butler.getPost('excellent-missive.md', function(err, post) {
 # License
 
 [WTFPL](http://wtfpl2.com)
+
+[![Build Status](https://travis-ci.org/TehShrike/noddity-render-static.svg)](https://travis-ci.org/TehShrike/noddity-render-static)
