@@ -4,137 +4,135 @@ var each = require('async-each')
 var dezalgo = require('dezalgo')
 var Ractive = require('ractive')
 var extend = require('xtend')
+var uuid = require('random-uuid-v4')
+
+var VALID_NODDITY_TEMPLATE_ELEMENT = '.noddity-template[data-noddity-post-file-name][data-noddity-template-arguments]'
+var ARGUMENTS_ATTRIBUTE = 'data-noddity-template-arguments'
+var FILENAME_ATTRIBUTE = 'data-noddity-post-file-name'
 
 module.exports = function getRenderedPostWithTemplates(post, options, cb) {
 	options.data = options.data || {}
 	cb = dezalgo(cb)
-	var rootData = extend(options.data, post.metadata)
-	var html = render(post, options.linkifier)
-	var $ = cheerio.load(html)
-	var getPost = options.butler.getPost
+	buildMapOfAllPostDependencies(post, options.linkifier, options.butler.getPost, function(err, mapOfPosts) {
+		if (err) {
+			cb(err)
+		} else {
+			augmentData(post, options.butler, function(err, data) {
+				var html = getHtmlWithPartials(post, options.linkifier, mapOfPosts)
+				var partials = turnPostsMapIntoPartialsObject(mapOfPosts, options.linkifier)
+				var finalHtml = new Ractive({
+					data: extend(data, options.data),
+					template: html,
+					partials: partials
+				}).toHTML()
 
-	if (options.data.postList && options.data.posts) {
-		continueOn()
+				cb(null, finalHtml)
+			})
+		}
+	})
+}
+
+function getDom(post, linkifier) {
+	var html = render(post, linkifier)
+	return cheerio.load(html)
+}
+
+function getContainedFileNames($) {
+	var map = {}
+	$(VALID_NODDITY_TEMPLATE_ELEMENT).each(function(index, element) {
+		var filename = $(element).attr(FILENAME_ATTRIBUTE)
+		map[filename] = true
+	})
+	return Object.keys(map)
+}
+
+function buildMapOfAllPostDependencies(post, linkifier, getPost, cb, map) {
+	map = map || {}
+	cb = dezalgo(cb)
+	var $ = getDom(post, linkifier)
+	var needToFetch = getContainedFileNames($).filter(function(filename) {
+		return !map[filename]
+	})
+
+	if (needToFetch.length === 0) {
+		cb(null, map)
 	} else {
-		augmentData(rootData, post, options.butler, function(err) {
+		each(needToFetch, getPost, function(err, posts) {
 			if (err) {
 				cb(err)
 			} else {
-				continueOn()
-			}
-		})
-	}
+				posts = posts.filter(function(post) {
+					return !map[post.filename]
+				})
 
-	function continueOn() {
-		getPostsByFilename($, post, getPost, function(err, postsByFilename) {
-			if (err) {
-				cb(err)
-			} else {
-				var filenameAndArgumentsAry = cheerioMap($, '.noddity-template[data-noddity-post-file-name][data-noddity-template-arguments]',
-					['data-noddity-post-file-name', 'data-noddity-template-arguments'])
+				posts.forEach(function(post) {
+					map[post.filename] = post
+				})
 
-				if (filenameAndArgumentsAry.length === 0) {
-					cb(null, renderTemplate(sanitize(html), rootData))
-				} else {
-					each(filenameAndArgumentsAry, function(filenameAndArguments, next) {
-
-						var element = filenameAndArguments.element
-						var filename = filenameAndArguments['data-noddity-post-file-name']
-						var childPost = postsByFilename[filename]
-						var templateArguments = JSON.parse(filenameAndArguments['data-noddity-template-arguments'])
-						var newData = extend(rootData, childPost.metadata, templateArguments)
-
-						var newOptions = extend(options, {
-							data: newData
-						})
-
-						getRenderedPostWithTemplates(childPost, newOptions, function(err, templateHtml) {
-							if (err) {
-								next(err)
-							} else {
-								// var rendered = renderTemplate(templateHtml, newData)
-								$(element).html(templateHtml)
-								next()
-							}
-						})
-
-					}, function(err) {
-						if (err) {
-							cb(err)
-						} else {
-							cb(null, renderTemplate(sanitize($.html()), rootData))
-						}
-					})
-				}
+				each(posts, function(post, cb) {
+					buildMapOfAllPostDependencies(post, linkifier, getPost, cb, map)
+				}, function(err, whatevs) {
+					cb(err, map)
+				})
 			}
 		})
 	}
 }
 
-function augmentData(data, post, butler, cb) {
+function addPartialReferencesToTemplate($, postsMap) {
+	var whatShouldReallyGoThere = {}
+	$(VALID_NODDITY_TEMPLATE_ELEMENT).each(function(index, element) {
+		var e = $(element)
+		var argumentsJson = e.attr(ARGUMENTS_ATTRIBUTE)
+		var filename = e.attr(FILENAME_ATTRIBUTE)
+		var args = JSON.parse(argumentsJson)
+		var metadata = postsMap[filename].metadata
+		var dataOnTemplateScope = extend(metadata, args)
+
+		var id = uuid()
+		whatShouldReallyGoThere[id] = '{{>' + filenameToPartialName(filename) + ' ' + JSON.stringify(dataOnTemplateScope) + ' }}'
+		e.html(id)
+	})
+	var html = $.html()
+
+	Object.keys(whatShouldReallyGoThere).forEach(function(uuid) {
+		html = html.replace(uuid, whatShouldReallyGoThere[uuid])
+	})
+	return html
+}
+
+function getHtmlWithPartials(post, linkifier, postsMap) {
+	var $ = getDom(post, linkifier)
+	return addPartialReferencesToTemplate($, postsMap)
+}
+
+function turnPostsMapIntoPartialsObject(mapOfPosts, linkifier) {
+	return Object.keys(mapOfPosts).reduce(function(partialsObject, filename) {
+		var post = mapOfPosts[filename]
+		partialsObject[filenameToPartialName(post.filename)] = getHtmlWithPartials(post, linkifier, mapOfPosts)
+		return partialsObject
+	}, {})
+}
+
+function filenameToPartialName(filename) {
+	return filename.replace(/\./g, '_')
+}
+
+function augmentData(post, butler, cb) {
 	butler.getPosts(function(err, posts) {
 		if (err) {
 			cb(err)
 		} else {
-			data.postList = posts.map(function(post) {
-				return extend(post, post.metadata)
+			cb(null, {
+				postList: posts.map(function(post) {
+					return extend(post, post.metadata)
+				}),
+				posts: posts.reduce(function(posts, post) {
+					posts[post.filename] = post
+					return posts
+				}, {}),
+				current: post.filename
 			})
-
-			data.posts = {}
-			posts.forEach(function(post) {
-				data.posts[post.filename] = post
-			})
-
-			data.current = post.filename
-
-			cb(null, data)
 		}
 	})
-}
-
-function renderTemplate(html, data) {
-	return new Ractive({
-		template: html,
-		data: data
-	}).toHTML()
-}
-
-function sanitize(html) {
-	return cheerio.load(html).html()
-}
-
-function getPostsByFilename($, post, getPost, cb) {
-	var filenames = cheerioMap($, '.noddity-template[data-noddity-post-file-name]', 'data-noddity-post-file-name')
-
-	each(filenames, getPost, function(err, posts) {
-		if (err) {
-			cb(err)
-		} else {
-			var postsByFilename = posts.reduce(function(o, post) {
-				o[post.filename] = post
-				return o
-			}, {})
-
-			cb(null, postsByFilename)
-		}
-	})
-}
-
-function cheerioMap($, selector, attrs) {
-	var ary = []
-	$(selector).each(function(index, element) {
-		if (Array.isArray(attrs)) {
-			var o = {
-				element: $(element)
-			}
-			attrs.forEach(function(attr) {
-				o[attr] = $(element).attr(attr)
-			})
-			ary.push(o)
-		} else {
-			ary.push($(element).attr(attrs))
-		}
-
-	})
-	return ary
 }
