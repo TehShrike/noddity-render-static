@@ -6,50 +6,88 @@ var Ractive = require('ractive')
 var extend = require('xtend')
 
 module.exports = function getRenderedPostWithTemplates(post, options, cb) {
+	options.data = options.data || {}
 	cb = dezalgo(cb)
+	var rootData = extend(options.data, post.metadata)
 	var html = render(post, options.linkifier)
 	var $ = cheerio.load(html)
 	var getPost = options.butler.getPost
 
-	getPostsByFilename($, post, getPost, function(err, postsByFilename) {
+	if (options.data.postList && options.data.posts) {
+		continueOn()
+	} else {
+		augmentData(rootData, post, options.butler, function(err) {
+			if (err) {
+				cb(err)
+			} else {
+				continueOn()
+			}
+		})
+	}
+
+	function continueOn() {
+		getPostsByFilename($, post, getPost, function(err, postsByFilename) {
+			if (err) {
+				cb(err)
+			} else {
+				var filenameAndArgumentsAry = cheerioMap($, '.noddity-template[data-noddity-post-file-name][data-noddity-template-arguments]',
+					['data-noddity-post-file-name', 'data-noddity-template-arguments'])
+
+				if (filenameAndArgumentsAry.length === 0) {
+					cb(null, renderTemplate(sanitize(html), rootData))
+				} else {
+					each(filenameAndArgumentsAry, function(filenameAndArguments, next) {
+
+						var element = filenameAndArguments.element
+						var filename = filenameAndArguments['data-noddity-post-file-name']
+						var childPost = postsByFilename[filename]
+						var templateArguments = JSON.parse(filenameAndArguments['data-noddity-template-arguments'])
+						var newData = extend(rootData, childPost.metadata, templateArguments)
+
+						var newOptions = extend(options, {
+							data: newData
+						})
+
+						getRenderedPostWithTemplates(childPost, newOptions, function(err, templateHtml) {
+							if (err) {
+								next(err)
+							} else {
+								// var rendered = renderTemplate(templateHtml, newData)
+								$(element).html(templateHtml)
+								next()
+							}
+						})
+
+					}, function(err) {
+						if (err) {
+							cb(err)
+						} else {
+							cb(null, renderTemplate(sanitize($.html()), rootData))
+						}
+					})
+				}
+			}
+		})
+	}
+}
+
+function augmentData(data, post, butler, cb) {
+	butler.getPosts(function(err, posts) {
 		if (err) {
 			cb(err)
 		} else {
-			var filenameAndArgumentsAry = cheerioMap($, '.noddity-template[data-noddity-post-file-name][data-noddity-template-arguments]',
-				['data-noddity-post-file-name', 'data-noddity-template-arguments'])
+			data.postList = posts.map(function(post) {
+				return extend(post, post.metadata)
+			})
 
-			if (filenameAndArgumentsAry.length === 0) {
-				cb(null, html)
-			} else {
-				each(filenameAndArgumentsAry, function(filenameAndArguments, next) {
+			data.posts = {}
+			posts.forEach(function(post) {
+				data.posts[post.filename] = post
+			})
 
-					var element = filenameAndArguments.element
-					var filename = filenameAndArguments['data-noddity-post-file-name']
-					var childPost = postsByFilename[filename]
-					var templateArguments = JSON.parse(filenameAndArguments['data-noddity-template-arguments'])
-					var newData = extend(options.data, childPost.metadata, templateArguments)
-					var newOptions = extend(options, {
-						data: newData
-					})
+			data.current = post.filename
 
-					getRenderedPostWithTemplates(childPost, newOptions, function(err, templateHtml) {
-						if (err) {
-							next(err)
-						} else {
-							var rendered = renderTemplate(templateHtml, newData)
-							$(element).html(rendered)
-							next()
-						}
-					})
-
-				}, function(err) {
-					if (err) {
-						cb(err)
-					} else {
-						cb(null, sanitize($.html()))
-					}
-				})
-			}
+			cb(null, data)
 		}
 	})
 }
