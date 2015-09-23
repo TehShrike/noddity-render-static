@@ -3,7 +3,10 @@ var Ractive = require('ractive')
 
 Ractive.DEBUG = false
 
+var matches = require('./helpers/matches-with-uuid')
 var makeTestState = require('./helpers/test-state')
+
+
 
 test('embedded templates', function(t) {
 	var state = makeTestState()
@@ -15,7 +18,7 @@ test('embedded templates', function(t) {
 	state.retrieval.getPost('file1.md', function(err, post) {
 		state.render(post, {}, function(err, html) {
 			t.notOk(err)
-			t.equal(html, '<p>This is a <span class="noddity-template" data-noddity-post-file-name="file2.md" data-noddity-template-arguments="{}"><p>lol yeah <span class="noddity-template" data-noddity-post-file-name="herp" data-noddity-template-arguments="{&quot;1&quot;:&quot;wat&quot;}">lookit wat</span> <span class="noddity-template" data-noddity-post-file-name="herp" data-noddity-template-arguments="{&quot;1&quot;:&quot;huh&quot;}">lookit huh</span></p></span> post that I <em>totally</em> wrote</p>')
+			t.ok(matches(html, '<p>This is a <span class="noddity-template" data-noddity-post-file-name="file2.md" data-noddity-template-arguments="{}" data-noddity-partial-name="UUID_HERE"><p>lol yeah <span class="noddity-template" data-noddity-post-file-name="herp" data-noddity-template-arguments="{&quot;1&quot;:&quot;wat&quot;}" data-noddity-partial-name="UUID_HERE">lookit wat</span> <span class="noddity-template" data-noddity-post-file-name="herp" data-noddity-template-arguments="{&quot;1&quot;:&quot;huh&quot;}" data-noddity-partial-name="UUID_HERE">lookit huh</span></p></span> post that I <em>totally</em> wrote</p>'))
 			t.end()
 		})
 	})
@@ -31,7 +34,7 @@ test('three markdown files deep', function(t) {
 	state.retrieval.getPost('file1.md', function(err, post) {
 		state.render(post, {}, function(err, html) {
 			t.notOk(err)
-			t.equal(html, '<p>This is a <span class="noddity-template" data-noddity-post-file-name="file2.md" data-noddity-template-arguments="{}"><p>lol yeah <span class="noddity-template" data-noddity-post-file-name="file3.md" data-noddity-template-arguments="{&quot;1&quot;:&quot;wat&quot;}"><p>lookit wat</p></span> <span class="noddity-template" data-noddity-post-file-name="file3.md" data-noddity-template-arguments="{&quot;1&quot;:&quot;huh&quot;}"><p>lookit huh</p></span></p></span> post that I <em>totally</em> wrote</p>')
+			t.ok(matches(html, '<p>This is a <span class="noddity-template" data-noddity-post-file-name="file2.md" data-noddity-template-arguments="{}" data-noddity-partial-name="UUID_HERE"><p>lol yeah <span class="noddity-template" data-noddity-post-file-name="file3.md" data-noddity-template-arguments="{&quot;1&quot;:&quot;wat&quot;}" data-noddity-partial-name="UUID_HERE"><p>lookit wat</p></span> <span class="noddity-template" data-noddity-post-file-name="file3.md" data-noddity-template-arguments="{&quot;1&quot;:&quot;huh&quot;}" data-noddity-partial-name="UUID_HERE"><p>lookit huh</p></span></p></span> post that I <em>totally</em> wrote</p>'))
 			t.end()
 		})
 	})

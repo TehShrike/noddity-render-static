@@ -3,6 +3,7 @@ var test = require('tape')
 require('ractive').DEBUG = false
 
 var makeTestState = require('./helpers/test-state')
+var matches = require('./helpers/matches-with-uuid')
 
 test('post list is properly in scope', function(t) {
 	var state = makeTestState()
@@ -46,14 +47,14 @@ test('post list is properly in scope in an embedded template, and the current fi
 		}
 		state.render(post, data, function(err, html) {
 			t.notOk(err)
-			t.equal(html, [
-				'<span class="noddity-template" data-noddity-post-file-name="file1.md" data-noddity-template-arguments="{}">',
+			t.ok(matches(html, [
+				'<span class="noddity-template" data-noddity-post-file-name="file1.md" data-noddity-template-arguments="{}" data-noddity-partial-name="UUID_HERE">',
 					'<ol>',
 						'<li><a href="#!/post/file1.md">Some title</a></li>',
 						'<li><a href="#!/post/file2.md">Another title</a></li>',
 						'<li><a href="#!/post/container">Container</a></li>',
 					'</ol>',
-				'container</span>container'].join(''))
+				'container</span>container'].join('')))
 			t.end()
 		})
 	})
