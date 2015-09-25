@@ -5,6 +5,7 @@ var dezalgo = require('dezalgo')
 var Ractive = require('ractive')
 var extend = require('xtend')
 var uuid = require('random-uuid-v4')
+Ractive.DEBUG = false
 
 var VALID_NODDITY_TEMPLATE_ELEMENT = '.noddity-template[data-noddity-post-file-name][data-noddity-template-arguments]'
 var ARGUMENTS_ATTRIBUTE = 'data-noddity-template-arguments'
