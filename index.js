@@ -1,5 +1,5 @@
 var parse = require('noddity-template-parser')
-var each = require('async-each')
+var runParallel = require('run-parallel')
 var dezalgo = require('dezalgo')
 var Ractive = require('ractive')
 var extend = require('xtend')
@@ -50,7 +50,10 @@ function buildMapOfAllPostDependencies(post, linkifier, getPost, cb, map) {
 	if (needToFetch.length === 0) {
 		cb(null, map)
 	} else {
-		each(needToFetch, getPost, function(err, posts) {
+		var postGetters = needToFetch.map(function(filename) {
+			return getPost.bind(null, filename)
+		})
+		runParallel(postGetters, function(err, posts) {
 			if (err) {
 				cb(err)
 			} else {
@@ -62,9 +65,13 @@ function buildMapOfAllPostDependencies(post, linkifier, getPost, cb, map) {
 					map[post.filename] = post
 				})
 
-				each(posts, function(post, cb) {
-					buildMapOfAllPostDependencies(post, linkifier, getPost, cb, map)
-				}, function(err) {
+				var buildAllDependencies = posts.map(function(post) {
+					return function(cb) {
+						buildMapOfAllPostDependencies(post, linkifier, getPost, cb, map)
+					}
+				})
+
+				runParallel(buildAllDependencies, function(err, results) {
 					cb(err, map)
 				})
 			}
