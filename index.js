@@ -1,15 +1,9 @@
-var render = require('noddity-renderer')
-var cheerio = require('cheerio')
+var parse = require('noddity-template-parser')
 var each = require('async-each')
 var dezalgo = require('dezalgo')
 var Ractive = require('ractive')
 var extend = require('xtend')
-var uuid = require('random-uuid-v4')
 Ractive.DEBUG = false
-
-var VALID_NODDITY_TEMPLATE_ELEMENT = '.noddity-template[data-noddity-post-file-name][data-noddity-template-arguments]'
-var ARGUMENTS_ATTRIBUTE = 'data-noddity-template-arguments'
-var FILENAME_ATTRIBUTE = 'data-noddity-post-file-name'
 
 module.exports = function getRenderedPostWithTemplates(post, options, cb) {
 	options.data = options.data || {}
@@ -33,25 +27,23 @@ module.exports = function getRenderedPostWithTemplates(post, options, cb) {
 	})
 }
 
-function getDom(post, linkifier) {
-	var html = render(post, linkifier)
-	return cheerio.load(html)
-}
-
-function getContainedFileNames($) {
-	var map = {}
-	$(VALID_NODDITY_TEMPLATE_ELEMENT).each(function(index, element) {
-		var filename = $(element).attr(FILENAME_ATTRIBUTE)
-		map[filename] = true
-	})
-	return Object.keys(map)
+function getContainedFileNames(ast) {
+	return Object.keys(ast.filter(function(chunk) {
+		return chunk.type === 'template'
+	}).map(function(chunk) {
+		return chunk.filename
+	}).reduce(function(uniqueMap, filename) {
+		uniqueMap[filename] = true
+		return uniqueMap
+	}, {}))
 }
 
 function buildMapOfAllPostDependencies(post, linkifier, getPost, cb, map) {
 	map = map || {}
 	cb = dezalgo(cb)
-	var $ = getDom(post, linkifier)
-	var needToFetch = getContainedFileNames($).filter(function(filename) {
+	var ast = parse(post, linkifier)
+
+	var needToFetch = getContainedFileNames(ast).filter(function(filename) {
 		return !map[filename]
 	})
 
@@ -72,7 +64,7 @@ function buildMapOfAllPostDependencies(post, linkifier, getPost, cb, map) {
 
 				each(posts, function(post, cb) {
 					buildMapOfAllPostDependencies(post, linkifier, getPost, cb, map)
-				}, function(err, whatevs) {
+				}, function(err) {
 					cb(err, map)
 				})
 			}
@@ -80,31 +72,22 @@ function buildMapOfAllPostDependencies(post, linkifier, getPost, cb, map) {
 	}
 }
 
-function addPartialReferencesToTemplate($, postsMap) {
-	var whatShouldReallyGoThere = {}
-	$(VALID_NODDITY_TEMPLATE_ELEMENT).each(function(index, element) {
-		var e = $(element)
-		var argumentsJson = e.attr(ARGUMENTS_ATTRIBUTE)
-		var filename = e.attr(FILENAME_ATTRIBUTE)
-		var args = JSON.parse(argumentsJson)
-		var metadata = postsMap[filename].metadata
-		var dataOnTemplateScope = extend(metadata, args)
-
-		var id = uuid()
-		whatShouldReallyGoThere[id] = '{{>' + filenameToPartialName(filename) + ' ' + JSON.stringify(dataOnTemplateScope) + ' }}'
-		e.html(id)
-	})
-	var html = $.html()
-
-	Object.keys(whatShouldReallyGoThere).forEach(function(uuid) {
-		html = html.replace(uuid, whatShouldReallyGoThere[uuid])
-	})
-	return html
-}
-
 function getHtmlWithPartials(post, linkifier, postsMap) {
-	var $ = getDom(post, linkifier)
-	return addPartialReferencesToTemplate($, postsMap)
+	var ast = parse(post, linkifier)
+
+	return ast.reduce(function(html, chunk) {
+		if (chunk.type === 'string') {
+			return html + chunk.value
+		} else if (chunk.type === 'template') {
+			var filename = chunk.filename
+			var args = chunk.arguments
+			var metadata = postsMap[filename].metadata
+			var dataOnTemplateScope = extend(metadata, args)
+			return html + '{{>' + filenameToPartialName(filename) + ' ' + JSON.stringify(dataOnTemplateScope) + ' }}'
+		}
+
+		return html
+	}, '')
 }
 
 function turnPostsMapIntoPartialsObject(mapOfPosts, linkifier) {
