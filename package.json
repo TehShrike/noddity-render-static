@@ -1,6 +1,6 @@
 {
   "name": "noddity-render-static",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Generate static HTML from Noddity posts",
   "main": "index.js",
   "scripts": {
