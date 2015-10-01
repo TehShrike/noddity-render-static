@@ -37,3 +37,18 @@ test('three markdown files deep', function(t) {
 		})
 	})
 })
+
+test('filename starting with a number', function(t) {
+	var state = makeTestState()
+
+	state.retrieval.addPost('file1.md', { title: 'Some title', date: new Date() }, 'This is a ::2.md:: post that I *totally* wrote')
+	state.retrieval.addPost('2.md', { title: 'Some title', date: new Date() }, 'lol yeah')
+
+	state.retrieval.getPost('file1.md', function(err, post) {
+		state.render(post, {}, function(err, html) {
+			t.notOk(err, 'no error')
+			t.equal(html, '<p>This is a <p>lol yeah</p> post that I <em>totally</em> wrote</p>')
+			t.end()
+		})
+	})
+})
