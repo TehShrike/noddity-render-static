@@ -106,7 +106,7 @@ function turnPostsMapIntoPartialsObject(mapOfPosts, linkifier) {
 }
 
 function filenameToPartialName(filename) {
-	return filename.replace(/\./g, '_')
+	return '_' + filename.replace(/\./g, '_')
 }
 
 function augmentData(post, butler, cb) {
