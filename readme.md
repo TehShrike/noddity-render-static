@@ -31,7 +31,7 @@ butler.getPost('excellent-missive.md', function(err, post) {
 
 # render(post, options, cb)
 
-- `post`: a Noddity post object returned by a Noddity Butler
+- `post`: either a Noddity post object, or the file name of a post to be loaded
 - `options`: all the other arguments
 	- `butler`: a [Noddity Butler](https://www.npmjs.com/package/noddity-butler)
 	- `linkifier`: a [Noddity Linkifier](https://www.npmjs.com/package/noddity-linkifier)

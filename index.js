@@ -5,7 +5,11 @@ var Ractive = require('ractive')
 var extend = require('xtend')
 Ractive.DEBUG = false
 
-module.exports = function getRenderedPostWithTemplates(post, options, cb) {
+module.exports = getRenderedPostWithTemplates
+
+function getRenderedPostWithTemplates(post, options, cb) {
+	if (typeof post === 'string') return loadFilename(post, options, cb)
+
 	options.data = options.data || {}
 	cb = dezalgo(cb)
 	buildMapOfAllPostDependencies(post, options.linkifier, options.butler.getPost, function(err, mapOfPosts) {
@@ -23,6 +27,16 @@ module.exports = function getRenderedPostWithTemplates(post, options, cb) {
 
 				cb(null, finalHtml)
 			})
+		}
+	})
+}
+
+function loadFilename(filename, options, cb) {
+	options.butler.getPost(filename, function(err, post) {
+		if (err) {
+			cb(err)
+		} else {
+			getRenderedPostWithTemplates(post, options, cb)
 		}
 	})
 }
