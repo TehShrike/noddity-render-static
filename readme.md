@@ -11,26 +11,26 @@ var Linkifier = require('noddity-linkifier')
 var butler = new Butler(noddityUrlString | noddityRetrieval, levelUpDb, [options])
 var linkifier = new Linkifier('#/myposts/')
 
-butler.getPost('excellent-missive.md', function(err, post) {
-	var options = {
-		butler: butler,
-		linkifier: linkifier,
-		data: {
-			config: {
-				configProperty: 'configValue'
-			},
-			arbitraryValue: 'lol'
-		}
+var options = {
+	butler: butler,
+	linkifier: linkifier,
+	data: {
+		config: {
+			configProperty: 'configValue'
+		},
+		arbitraryValue: 'lol'
 	}
+}
 
-	render(post, options, function(err, html) {
-		console.log(html)
-	})
+render('template.md', 'excellent-missive.md', options, function(err, html) {
+	console.log(html)
 })
+
 ```
 
-# render(post, options, cb)
+# render(template, post, options, cb)
 
+- `template`: either a Noddity post object, or file name of a post, to be used as the template into which the current post will be injected.  Should have `{{>current}}` in it somewhere - this is where the current/main post will show up.
 - `post`: either a Noddity post object, or the file name of a post to be loaded
 - `options`: all the other arguments
 	- `butler`: a [Noddity Butler](https://www.npmjs.com/package/noddity-butler)
