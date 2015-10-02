@@ -16,7 +16,7 @@ module.exports = function getRenderedPostWithTemplates(template, post, options, 
 			if (err) {
 				cb(err)
 			} else {
-				augmentData(post, options.butler, function(err, data) {
+				augmentRootData(post, options.butler, function(err, data) {
 					var html = getHtmlWithPartials(template, options.linkifier, mapOfPosts)
 					var partials = turnPostsMapIntoPartialsObject(mapOfPosts, options.linkifier)
 					partials.current = getHtmlWithPartials(post, options.linkifier, mapOfPosts)
@@ -143,13 +143,15 @@ function filenameToPartialName(filename) {
 	return '_' + filename.replace(/\./g, '_')
 }
 
-function augmentData(post, butler, cb) {
+function augmentRootData(post, butler, cb) {
 	butler.getPosts(function(err, posts) {
 		if (err) {
 			cb(err)
 		} else {
-			cb(null, {
-				postList: posts.map(function(post) {
+			cb(null, extend(post.metadata, {
+				postList: posts.filter(function(post) {
+					return post.metadata.date
+				}).map(function(post) {
 					return extend(post, post.metadata)
 				}),
 				posts: posts.reduce(function(posts, post) {
@@ -157,7 +159,7 @@ function augmentData(post, butler, cb) {
 					return posts
 				}, {}),
 				current: post.filename
-			})
+			}))
 		}
 	})
 }
