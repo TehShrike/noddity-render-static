@@ -72,3 +72,16 @@ test('loading based on file name', function(t) {
 		t.end()
 	})
 })
+
+test('{{{html}}} still works', function(t) {
+	var state = makeTestState()
+
+	state.retrieval.addPost('post', { title: 'TEMPLAAAATE', markdown: false }, '{{{html}}}')
+	state.retrieval.addPost('file1.md', { title: 'Some title', date: new Date() }, 'yay!')
+
+	state.render('post', 'file1.md', {}, function(err, html) {
+		t.notOk(err, 'no error')
+		t.equal(html, '<p>yay!</p>')
+		t.end()
+	})
+})

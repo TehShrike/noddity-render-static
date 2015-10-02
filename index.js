@@ -11,6 +11,8 @@ module.exports = function getRenderedPostWithTemplates(template, post, options, 
 	loadPostObjects(options.butler, template, post, function(err, template, post) {
 		if (err) return cb(err)
 
+		template.content = template.content.replace('{{{html}}}', '{{>current}}')
+
 		options.data = options.data || {}
 		buildMapOfAllPostDependencies(post, options.linkifier, options.butler.getPost, function(err, mapOfPosts) {
 			if (err) {
