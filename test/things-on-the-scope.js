@@ -7,6 +7,7 @@ var makeTestState = require('./helpers/test-state')
 test('post list is properly in scope', function(t) {
 	var state = makeTestState()
 
+	state.retrieval.addPost('post', { title: 'TEMPLAAAATE', markdown: false }, '{{>current}}')
 	state.retrieval.addPost('file1.md', { title: 'Some title', date: new Date(1442361866264) }, ['<ol>{{#postList}}',
 				'<li><a href="{{pathPrefix}}{{pagePathPrefix}}{{filename}}">{{title}}</a></li>',
 			'{{/postList}}</ol>'].join('\n'))
@@ -18,7 +19,7 @@ test('post list is properly in scope', function(t) {
 			pathPrefix: '#!/',
 			pagePathPrefix: 'post/'
 		}
-		state.render(post, data, function(err, html) {
+		state.render('post', post, data, function(err, html) {
 			t.notOk(err)
 			t.equal(html, ['<ol>',
 				'<li><a href="#!/post/file1.md">Some title</a></li>',
@@ -33,6 +34,7 @@ test('post list is properly in scope', function(t) {
 test('post list is properly in scope in an embedded template, and the current filename is set at top and embedded levels', function(t) {
 	var state = makeTestState()
 
+	state.retrieval.addPost('post', { title: 'TEMPLAAAATE', markdown: false }, '{{>current}}')
 	state.retrieval.addPost('file1.md', { title: 'Some title', date: new Date(1442361866264) }, ['<ol>{{#postList}}',
 				'<li><a href="{{pathPrefix}}{{pagePathPrefix}}{{filename}}">{{title}}</a></li>',
 			'{{/postList}}</ol>{{current}}'].join('\n'))
@@ -44,7 +46,7 @@ test('post list is properly in scope in an embedded template, and the current fi
 			pathPrefix: '#!/',
 			pagePathPrefix: 'post/'
 		}
-		state.render(post, data, function(err, html) {
+		state.render('post', post, data, function(err, html) {
 			t.notOk(err)
 			t.equal(html, [
 					'<ol>',

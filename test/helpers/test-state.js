@@ -14,8 +14,8 @@ module.exports = function testState() {
 	})
 	var linkifier = new Linkify('#/prefix')
 
-	function render(post, data, cb) {
-		staticRenderer(post, {
+	function render(template, post, data, cb) {
+		staticRenderer(template, post, {
 			butler: butler,
 			linkifier: linkifier,
 			data: data
