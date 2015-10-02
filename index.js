@@ -5,40 +5,60 @@ var Ractive = require('ractive')
 var extend = require('xtend')
 Ractive.DEBUG = false
 
-module.exports = getRenderedPostWithTemplates
-
-function getRenderedPostWithTemplates(post, options, cb) {
-	if (typeof post === 'string') return loadFilename(post, options, cb)
-
-	options.data = options.data || {}
+module.exports = function getRenderedPostWithTemplates(template, post, options, cb) {
 	cb = dezalgo(cb)
-	buildMapOfAllPostDependencies(post, options.linkifier, options.butler.getPost, function(err, mapOfPosts) {
-		if (err) {
-			cb(err)
-		} else {
-			augmentData(post, options.butler, function(err, data) {
-				var html = getHtmlWithPartials(post, options.linkifier, mapOfPosts)
-				var partials = turnPostsMapIntoPartialsObject(mapOfPosts, options.linkifier)
-				var finalHtml = new Ractive({
-					data: extend(data, options.data),
-					template: html,
-					partials: partials
-				}).toHTML()
 
-				cb(null, finalHtml)
-			})
-		}
+	loadPostObjects(options.butler, template, post, function(err, template, post) {
+		if (err) return cb(err)
+
+		options.data = options.data || {}
+		buildMapOfAllPostDependencies(post, options.linkifier, options.butler.getPost, function(err, mapOfPosts) {
+			if (err) {
+				cb(err)
+			} else {
+				augmentRootData(post, options.butler, function(err, data) {
+					var html = getHtmlWithPartials(template, options.linkifier, mapOfPosts)
+					var partials = turnPostsMapIntoPartialsObject(mapOfPosts, options.linkifier)
+					partials.current = getHtmlWithPartials(post, options.linkifier, mapOfPosts)
+
+					var ractive = new Ractive({
+						data: extend(data, options.data),
+						template: html,
+						partials: partials
+					})
+
+					try {
+						var finalHtml = ractive.toHTML()
+					} catch (e) {
+						return cb(e)
+					}
+
+
+					cb(null, finalHtml)
+				})
+			}
+		})
+
 	})
 }
 
-function loadFilename(filename, options, cb) {
-	options.butler.getPost(filename, function(err, post) {
-		if (err) {
-			cb(err)
-		} else {
-			getRenderedPostWithTemplates(post, options, cb)
-		}
+function loadPostObjects(butler, template, post, cb) {
+	runParallel({
+		template: loadPostObjectFromStringOrObject.bind(null, butler, template),
+		post: loadPostObjectFromStringOrObject.bind(null, butler, post)
+	}, function(err, postObjects) {
+		cb(err, postObjects.template, postObjects.post)
 	})
+}
+
+function loadPostObjectFromStringOrObject(butler, postOrFilename, cb) {
+	if (!postOrFilename) {
+		cb(new Error('That\'s not a post!'))
+	} else if (typeof postOrFilename === 'string') {
+		butler.getPost(postOrFilename, cb)
+	} else {
+		cb(null, postOrFilename)
+	}
 }
 
 function getContainedFileNames(ast) {
@@ -85,7 +105,7 @@ function buildMapOfAllPostDependencies(post, linkifier, getPost, cb, map) {
 					}
 				})
 
-				runParallel(buildAllDependencies, function(err, results) {
+				runParallel(buildAllDependencies, function(err) {
 					cb(err, map)
 				})
 			}
@@ -102,7 +122,7 @@ function getHtmlWithPartials(post, linkifier, postsMap) {
 		} else if (chunk.type === 'template') {
 			var filename = chunk.filename
 			var args = chunk.arguments
-			var metadata = postsMap[filename].metadata
+			var metadata = postsMap[filename] ? postsMap[filename].metadata : {}
 			var dataOnTemplateScope = extend(metadata, args)
 			return html + '{{>' + filenameToPartialName(filename) + ' ' + JSON.stringify(dataOnTemplateScope) + ' }}'
 		}
@@ -123,13 +143,15 @@ function filenameToPartialName(filename) {
 	return '_' + filename.replace(/\./g, '_')
 }
 
-function augmentData(post, butler, cb) {
+function augmentRootData(post, butler, cb) {
 	butler.getPosts(function(err, posts) {
 		if (err) {
 			cb(err)
 		} else {
-			cb(null, {
-				postList: posts.map(function(post) {
+			cb(null, extend(post.metadata, {
+				postList: posts.filter(function(post) {
+					return post.metadata.date
+				}).map(function(post) {
 					return extend(post, post.metadata)
 				}),
 				posts: posts.reduce(function(posts, post) {
@@ -137,7 +159,7 @@ function augmentData(post, butler, cb) {
 					return posts
 				}, {}),
 				current: post.filename
-			})
+			}))
 		}
 	})
 }
