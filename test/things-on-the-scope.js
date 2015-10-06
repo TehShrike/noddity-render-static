@@ -91,3 +91,23 @@ test('post list and current filename is set at top and embedded levels', functio
 		t.end()
 	})
 })
+
+test('post object', function(t) {
+	var state = makeTestState()
+
+	state.retrieval.addPost('post', { title: 'whatevs', markdown: false }, '{{>current}}')
+	state.retrieval.addPost('file1.md', { title: 'Some title', date: new Date(1442361866265), otherMetadata: 999 }, '{{ posts.file2md.metadata.title}}')
+	state.retrieval.addPost('file2.md', { title: 'Another title', date: new Date(1442361866265) }, '{{ posts[removeDots(\'file1.md\')].metadata.otherMetadata}}')
+
+	state.render('post', 'file1.md', {}, function(err, html) {
+		t.notOk(err, 'no error')
+		t.equal(html, '<p>Another title</p>', 'properly converts file1.md')
+
+		state.render('post', 'file2.md', {}, function(err, html) {
+			t.notOk(err, 'no error')
+			t.equal(html, '<p>999</p>', 'properly converts file2.md')
+
+			t.end()
+		})
+	})
+})

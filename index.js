@@ -23,6 +23,8 @@ module.exports = function getRenderedPostWithTemplates(template, post, options, 
 					var partials = turnPostsMapIntoPartialsObject(mapOfPosts, options.linkifier)
 					partials.current = getHtmlWithPartials(post, options.linkifier, mapOfPosts)
 
+					data.removeDots = removeDots
+
 					var ractive = new Ractive({
 						data: extend(data, options.data),
 						template: html,
@@ -157,11 +159,15 @@ function augmentRootData(post, butler, cb) {
 					return extend(post, post.metadata)
 				}),
 				posts: posts.reduce(function(posts, post) {
-					posts[post.filename] = post
+					posts[removeDots(post.filename)] = post
 					return posts
 				}, {}),
 				current: post.filename
 			}))
 		}
 	})
+}
+
+function removeDots(str) {
+	return str.replace(/\./g, '')
 }
