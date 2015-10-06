@@ -18,7 +18,7 @@ test('embedded templates, passing in both posts as post objects', function(t) {
 		state.retrieval.getPost('post', function(err, template) {
 			state.render(template, post, {}, function(err, html) {
 				t.notOk(err, 'no error')
-				t.equal(html, '<p>This is a <p>lol yeah lookit wat lookit huh</p> post that I <em>totally</em> wrote</p>')
+				t.equal(html, '<p>This is a <p>lol yeah lookit wat lookit huh</p>\n post that I <em>totally</em> wrote</p>\n')
 				t.end()
 			})
 		})
@@ -36,7 +36,7 @@ test('three markdown files deep', function(t) {
 	state.retrieval.getPost('file1.md', function(err, post) {
 		state.render('post', post, {}, function(err, html) {
 			t.notOk(err, 'no error')
-			t.equal(html, '<p>This is a <p>lol yeah <p>lookit wat</p> <p>lookit huh</p></p> post that I <em>totally</em> wrote</p>')
+			t.equal(html, '<p>This is a <p>lol yeah <p>lookit wat</p>\n <p>lookit huh</p>\n</p>\n post that I <em>totally</em> wrote</p>\n')
 			t.end()
 		})
 	})
@@ -52,7 +52,7 @@ test('filename starting with a number', function(t) {
 	state.retrieval.getPost('file1.md', function(err, post) {
 		state.render('post', post, {}, function(err, html) {
 			t.notOk(err, 'no error')
-			t.equal(html, '<p>This is a <p>lol yeah</p> post that I <em>totally</em> wrote</p>')
+			t.equal(html, '<p>This is a <p>lol yeah</p>\n post that I <em>totally</em> wrote</p>\n')
 			t.end()
 		})
 	})
@@ -68,7 +68,7 @@ test('loading based on file name', function(t) {
 
 	state.render('post', 'file1.md', {}, function(err, html) {
 		t.notOk(err, 'no error')
-		t.equal(html, '<p>This is a <p>lol yeah lookit wat lookit huh</p> post that I <em>totally</em> wrote</p>')
+		t.equal(html, '<p>This is a <p>lol yeah lookit wat lookit huh</p>\n post that I <em>totally</em> wrote</p>\n')
 		t.end()
 	})
 })
@@ -81,7 +81,27 @@ test('{{{html}}} still works', function(t) {
 
 	state.render('post', 'file1.md', {}, function(err, html) {
 		t.notOk(err, 'no error')
-		t.equal(html, '<p>yay!</p>')
+		t.equal(html, '<p>yay!</p>\n')
+		t.end()
+	})
+})
+
+test('Optionally don\'t convert to markdown', function(t) {
+	var state = makeTestState()
+
+	state.retrieval.addPost('post', { title: 'TEMPLAAAATE' }, '# oh yeah\n\n{{>current}}')
+	state.retrieval.addPost('file1.md', { title: 'Some title', date: new Date() }, '# totally a header\n\n::file2.md::')
+	state.retrieval.addPost('file2.md', { title: 'Some other title', date: new Date() }, '## also a header\n\nand more text')
+
+	state.render('post', 'file1.md', {
+		convertToHtml: false
+	}, function(err, markdown) {
+		t.notOk(err, 'no error')
+		t.equal(markdown, [
+			'# oh yeah # totally a header',
+			'## also a header',
+			'and more text'
+		].join('\n\n'))
 		t.end()
 	})
 })

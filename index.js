@@ -8,6 +8,8 @@ Ractive.DEBUG = false
 module.exports = function getRenderedPostWithTemplates(template, post, options, cb) {
 	cb = dezalgo(cb)
 
+	var convertToHtml = options.convertToHtml !== false
+
 	loadPostObjects(options.butler, template, post, function(err, template, post) {
 		if (err) return cb(err)
 
@@ -19,16 +21,17 @@ module.exports = function getRenderedPostWithTemplates(template, post, options, 
 				cb(err)
 			} else {
 				augmentRootData(post, options.butler, function(err, data) {
-					var html = getHtmlWithPartials(template, options.linkifier, mapOfPosts)
-					var partials = turnPostsMapIntoPartialsObject(mapOfPosts, options.linkifier)
-					partials.current = getHtmlWithPartials(post, options.linkifier, mapOfPosts)
+					var html = getHtmlWithPartials(template, options.linkifier, convertToHtml, mapOfPosts)
+					var partials = turnPostsMapIntoPartialsObject(mapOfPosts, options.linkifier, convertToHtml)
+					partials.current = getHtmlWithPartials(post, options.linkifier, convertToHtml, mapOfPosts)
 
 					data.removeDots = removeDots
 
 					var ractive = new Ractive({
 						data: extend(data, options.data),
-						template: html,
-						partials: partials
+						template: Ractive.parse(html),
+						partials: partials,
+						preserveWhitespace: true
 					})
 
 					try {
@@ -117,8 +120,8 @@ function buildMapOfAllPostDependencies(post, linkifier, getPost, cb, map) {
 	}
 }
 
-function getHtmlWithPartials(post, linkifier, postsMap) {
-	var ast = parse(post, linkifier)
+function getHtmlWithPartials(post, linkifier, convertToHtml, postsMap) {
+	var ast = parse(post, linkifier, { convertToHtml: convertToHtml })
 
 	return ast.reduce(function(html, chunk) {
 		if (chunk.type === 'string') {
@@ -135,10 +138,10 @@ function getHtmlWithPartials(post, linkifier, postsMap) {
 	}, '')
 }
 
-function turnPostsMapIntoPartialsObject(mapOfPosts, linkifier) {
+function turnPostsMapIntoPartialsObject(mapOfPosts, linkifier, convertToHtml) {
 	return Object.keys(mapOfPosts).reduce(function(partialsObject, filename) {
 		var post = mapOfPosts[filename]
-		partialsObject[filenameToPartialName(post.filename)] = getHtmlWithPartials(post, linkifier, mapOfPosts)
+		partialsObject[filenameToPartialName(post.filename)] = getHtmlWithPartials(post, linkifier, convertToHtml, mapOfPosts)
 		return partialsObject
 	}, {})
 }

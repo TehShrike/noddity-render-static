@@ -19,13 +19,13 @@ test('post list is properly in scope and in the proper order', function(t) {
 			pathPrefix: '#!/',
 			pagePathPrefix: 'post/'
 		}
-		state.render('post', post, data, function(err, html) {
+		state.render('post', post, { data: data }, function(err, html) {
 			t.notOk(err)
 			t.equal(html, ['<ol>',
-				'<li><a href="#!/post/file1.md">Some title</a></li>',
-				'<li><a href="#!/post/herp">Even moar title</a></li>',
+				'<li><a href="#!/post/file1.md">Some title</a></li>\n',
+				'<li><a href="#!/post/herp">Even moar title</a></li>\n',
 				'<li><a href="#!/post/file2.md">Another title</a></li>',
-				'</ol>'].join(''))
+				'</ol>'].join('\n'))
 			t.end()
 		})
 	})
@@ -46,14 +46,14 @@ test('post list is properly in scope in an embedded template, and the current fi
 			pathPrefix: '#!/',
 			pagePathPrefix: 'post/'
 		}
-		state.render('post', post, data, function(err, html) {
+		state.render('post', post, { data: data }, function(err, html) {
 			t.notOk(err)
 			t.equal(html, [
 					'<ol>',
-						'<li><a href="#!/post/file1.md">Some title</a></li>',
-						'<li><a href="#!/post/file2.md">Another title</a></li>',
+						'<li><a href="#!/post/file1.md">Some title</a></li>\n',
+						'<li><a href="#!/post/file2.md">Another title</a></li>\n',
 						'<li><a href="#!/post/container">Container</a></li>',
-					'</ol>containercontainer',].join(''))
+					'</ol>containercontainer',].join('\n'))
 			t.end()
 		})
 	})
@@ -77,17 +77,13 @@ test('post list and current filename is set at top and embedded levels', functio
 		pagePathPrefix: 'post/'
 	}
 
-	state.render('post', 'innocuous.md', data, function(err, html) {
+	state.render('post', 'innocuous.md', { data: data }, function(err, html) {
 		t.notOk(err)
-		t.equal(html, [
-				'Innocuous post ',
-				'<ol>',
-					'<li><a href="#!/post/innocuous.md">Innocuous post</a></li>',
+		t.equal(html.replace('\n', ''), [
+				'Innocuous post <ol><li><a href="#!/post/innocuous.md">Innocuous post</a></li>',
 					'<li><a href="#!/post/file2.md">Another title</a></li>',
 					'<li><a href="#!/post/container">Container</a></li>',
-				'</ol> ',
-				'innocuous.md ',
-				'<p>not much here!</p>'].join(''))
+				'</ol> innocuous.md <p>not much here!</p> '].join(''))
 		t.end()
 	})
 })
@@ -101,11 +97,11 @@ test('post object', function(t) {
 
 	state.render('post', 'file1.md', {}, function(err, html) {
 		t.notOk(err, 'no error')
-		t.equal(html, '<p>Another title</p>', 'properly converts file1.md')
+		t.equal(html, '<p>Another title</p>\n', 'properly converts file1.md')
 
 		state.render('post', 'file2.md', {}, function(err, html) {
 			t.notOk(err, 'no error')
-			t.equal(html, '<p>999</p>', 'properly converts file2.md')
+			t.equal(html, '<p>999</p>\n', 'properly converts file2.md')
 
 			t.end()
 		})

@@ -3,6 +3,7 @@ var staticRenderer = require('../../index.js')
 var levelmem = require('level-mem')
 var Butler = require('noddity-butler')
 var Linkify = require('noddity-linkifier')
+var extend = require('xtend')
 
 module.exports = function testState() {
 	var retrieval = new TestRetrieval()
@@ -14,12 +15,12 @@ module.exports = function testState() {
 	})
 	var linkifier = new Linkify('#/prefix')
 
-	function render(template, post, data, cb) {
-		staticRenderer(template, post, {
+	function render(template, post, options, cb) {
+		staticRenderer(template, post, extend({
 			butler: butler,
 			linkifier: linkifier,
-			data: data
-		}, cb)
+			data: {}
+		}, options), cb)
 	}
 
 	return {
