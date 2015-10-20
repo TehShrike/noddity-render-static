@@ -98,10 +98,47 @@ test('Optionally don\'t convert to markdown', function(t) {
 	}, function(err, markdown) {
 		t.notOk(err, 'no error')
 		t.equal(markdown, [
-			'# oh yeah # totally a header',
+			'# oh yeah',
+			'# totally a header',
 			'## also a header',
 			'and more text'
 		].join('\n\n'))
 		t.end()
 	})
+})
+
+test('escaping characters it shouldn\'t when converting to markdown', function(t) {
+	var state = makeTestState()
+
+	state.retrieval.addPost('post', { title: 'TEMPLAAAATE' }, '{{>current}}')
+	state.retrieval.addPost('file1.md', { title: 'Some title', date: new Date() }, '# oh yeah\n\n> some block quote')
+	state.retrieval.addPost('file2.md', { title: 'Some other title', date: new Date() }, '# totally a header\n\n&gt; not a block quote')
+
+	t.test('with angle brackets', function(t) {
+		state.render('post', 'file1.md', {
+			convertToHtml: false
+		}, function(err, markdown) {
+			t.notOk(err, 'no error')
+			t.equal(markdown, [
+				'# oh yeah',
+				'> some block quote'
+			].join('\n\n'))
+			t.end()
+		})
+	})
+
+	t.test('with html entities', function(t) {
+		state.render('post', 'file2.md', {
+			convertToHtml: false
+		}, function(err, markdown) {
+			t.notOk(err, 'no error')
+			t.equal(markdown, [
+				'# totally a header',
+				'&gt; not a block quote'
+			].join('\n\n'))
+			t.end()
+
+		})
+	})
+
 })

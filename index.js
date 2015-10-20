@@ -3,12 +3,13 @@ var runParallel = require('run-parallel')
 var dezalgo = require('dezalgo')
 var Ractive = require('ractive')
 var extend = require('xtend')
-Ractive.DEBUG = false
+var makeReplacer = require('./replacer')
 
 module.exports = function getRenderedPostWithTemplates(template, post, options, cb) {
 	cb = dezalgo(cb)
 
 	var convertToHtml = options.convertToHtml !== false
+	var replacer = makeReplacer()
 
 	loadPostObjects(options.butler, template, post, function(err, template, post) {
 		if (err) return cb(err)
@@ -21,11 +22,23 @@ module.exports = function getRenderedPostWithTemplates(template, post, options, 
 				cb(err)
 			} else {
 				augmentRootData(post, options.butler, function(err, data) {
-					var html = getHtmlWithPartials(template, options.linkifier, convertToHtml, mapOfPosts)
-					var partials = turnPostsMapIntoPartialsObject(mapOfPosts, options.linkifier, convertToHtml)
-					partials.current = getHtmlWithPartials(post, options.linkifier, convertToHtml, mapOfPosts)
+					if (err) {
+						cb(err)
+						return
+					}
+
+					var html = getHtmlWithPartials(template, options.linkifier, convertToHtml, mapOfPosts, replacer.replace)
+					var partials = turnPostsMapIntoPartialsObject(mapOfPosts, options.linkifier, convertToHtml, replacer.replace)
+					partials.current = getHtmlWithPartials(post, options.linkifier, convertToHtml, mapOfPosts, replacer.replace)
 
 					data.removeDots = removeDots
+
+					if (convertToHtml) {
+						Object.keys(partials).forEach(function(key) {
+							partials[key] = replacer.putBack(partials[key])
+						})
+						html = replacer.putBack(html)
+					}
 
 					var ractive = new Ractive({
 						data: extend(data, options.data),
@@ -36,6 +49,9 @@ module.exports = function getRenderedPostWithTemplates(template, post, options, 
 
 					try {
 						var finalHtml = ractive.toHTML()
+						if (!convertToHtml) {
+							finalHtml = replacer.putBack(finalHtml)
+						}
 					} catch (e) {
 						return cb(e)
 					}
@@ -120,12 +136,12 @@ function buildMapOfAllPostDependencies(post, linkifier, getPost, cb, map) {
 	}
 }
 
-function getHtmlWithPartials(post, linkifier, convertToHtml, postsMap) {
+function getHtmlWithPartials(post, linkifier, convertToHtml, postsMap, replace) {
 	var ast = parse(post, linkifier, { convertToHtml: convertToHtml })
 
 	return ast.reduce(function(html, chunk) {
 		if (chunk.type === 'string') {
-			return html + chunk.value
+			return html + replace(chunk.value)
 		} else if (chunk.type === 'template') {
 			var filename = chunk.filename
 			var args = chunk.arguments
@@ -138,10 +154,10 @@ function getHtmlWithPartials(post, linkifier, convertToHtml, postsMap) {
 	}, '')
 }
 
-function turnPostsMapIntoPartialsObject(mapOfPosts, linkifier, convertToHtml) {
+function turnPostsMapIntoPartialsObject(mapOfPosts, linkifier, convertToHtml, replace) {
 	return Object.keys(mapOfPosts).reduce(function(partialsObject, filename) {
 		var post = mapOfPosts[filename]
-		partialsObject[filenameToPartialName(post.filename)] = getHtmlWithPartials(post, linkifier, convertToHtml, mapOfPosts)
+		partialsObject[filenameToPartialName(post.filename)] = getHtmlWithPartials(post, linkifier, convertToHtml, mapOfPosts, replace)
 		return partialsObject
 	}, {})
 }
