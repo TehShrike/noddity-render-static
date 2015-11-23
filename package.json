@@ -22,7 +22,7 @@
   "devDependencies": {
     "level-mem": "0.18.0",
     "noddity-butler": "2.1.1",
-    "noddity-linkifier": "2.1.0",
+    "noddity-linkifier": "~2.2.1",
     "quotemeta": "0.0.0",
     "tape": "4.2.0"
   },
