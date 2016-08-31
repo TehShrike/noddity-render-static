@@ -21,17 +21,17 @@
   "homepage": "https://github.com/TehShrike/noddity-render-static#readme",
   "devDependencies": {
     "level-mem": "0.18.0",
-    "noddity-butler": "2.1.1",
+    "noddity-butler": "2.6.0",
     "noddity-linkifier": "~2.2.1",
     "quotemeta": "0.0.0",
-    "tape": "4.2.0"
+    "tape": "4.6.0"
   },
   "dependencies": {
     "dezalgo": "1.0.3",
-    "noddity-template-parser": "~1.0.1",
+    "noddity-template-parser": "~1.1.0",
     "ractive": "0.7.3",
-    "random-uuid-v4": "0.0.5",
-    "run-parallel": "1.1.4",
-    "xtend": "4.0.0"
+    "random-uuid-v4": "0.0.6",
+    "run-parallel": "1.1.6",
+    "xtend": "4.0.1"
   }
 }
