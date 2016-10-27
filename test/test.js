@@ -86,6 +86,23 @@ test('{{{html}}} still works', function(t) {
 	})
 })
 
+test('post with {{{html}}} is not mutated', function(t) {
+	var state = makeTestState()
+
+	const postTemplate = {
+		metadata: { title: 'TEMPLAAAATE', markdown: false },
+		content: '{{{html}}}'
+	}
+
+	state.retrieval.addPost('file1.md', { title: 'Some title', date: new Date() }, 'yay!')
+
+	state.render(postTemplate, 'file1.md', {}, function(err, html) {
+		t.notOk(err, 'no error')
+		t.equal(postTemplate.content, '{{{html}}}')
+		t.end()
+	})
+})
+
 test('Optionally don\'t convert to markdown', function(t) {
 	var state = makeTestState()
 
