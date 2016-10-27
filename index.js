@@ -40,14 +40,14 @@ module.exports = function getRenderedPostWithTemplates(template, post, options, 
 						html = replacer.putBack(html)
 					}
 
-					var ractive = new Ractive({
-						data: extend(data, options.data),
-						template: Ractive.parse(html),
-						partials: partials,
-						preserveWhitespace: true
-					})
-
 					try {
+						var ractive = new Ractive({
+							data: extend(data, options.data),
+							template: Ractive.parse(html),
+							partials: partials,
+							preserveWhitespace: true
+						})
+
 						var finalHtml = ractive.toHTML()
 						if (!convertToHtml) {
 							finalHtml = replacer.putBack(finalHtml)

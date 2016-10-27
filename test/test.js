@@ -160,3 +160,15 @@ test('a post on noddity.com with a link in a code block', function(t) {
 		t.end()
 	})
 })
+
+test('invalid template', function(t) {
+	var state = makeTestState()
+
+	state.retrieval.addPost('post', { title: 'TEMPLAAAATE' }, '{{>current}}')
+	state.retrieval.addPost('invalid.md', {}, '<p><p>wat</p></p>')
+
+	state.render('post', 'invalid.md', {}, function(err, html) {
+		t.ok(err)
+		t.end()
+	})
+})
