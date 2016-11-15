@@ -174,6 +174,8 @@ function augmentRootData(post, butler, cb) {
 			cb(err)
 		} else {
 			cb(null, extend(post.metadata, {
+				metadata: post.metadata
+			}, {
 				postList: posts.filter(function(post) {
 					return post.metadata.date
 				}).map(function(post) {

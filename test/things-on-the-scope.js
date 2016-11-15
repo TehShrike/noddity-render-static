@@ -107,3 +107,16 @@ test('post object', function(t) {
 		})
 	})
 })
+
+test('post metadata is available on the metadata object', function(t) {
+	var state = makeTestState()
+
+	state.retrieval.addPost('post', { title: 'whatevs', markdown: false }, '{{>current}}')
+	state.retrieval.addPost('file1.md', { title: 'Some title', date: new Date(1442361866265), otherMetadata: 999 }, '{{metadata.title}} {{metadata.otherMetadata}}')
+
+	state.render('post', 'file1.md', {}, function(err, html) {
+		t.notOk(err)
+		t.equal(html, '<p>Some title 999</p>\n')
+		t.end()
+	})
+})
