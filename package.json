@@ -28,7 +28,7 @@
   "dependencies": {
     "dezalgo": "1.0.3",
     "noddity-template-parser": "~1.1.0",
-    "ractive": "0.7.3",
+    "ractive": "0.8.0",
     "random-uuid-v4": "0.0.6",
     "run-parallel": "1.1.6",
     "xtend": "4.0.1"
