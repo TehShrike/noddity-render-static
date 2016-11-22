@@ -23,7 +23,7 @@
     "level-mem": "0.18.0",
     "noddity-butler": "2.6.1",
     "noddity-linkifier": "~2.2.1",
-    "tape": "4.6.2"
+    "tape": "4.6.3"
   },
   "dependencies": {
     "dezalgo": "1.0.3",
