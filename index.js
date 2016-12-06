@@ -177,10 +177,10 @@ function augmentRootData(post, butler, cb) {
 				metadata: post.metadata
 			}, {
 				postList: posts.filter(function(post) {
-					return post.metadata.date
+					return typeof post.metadata.title === 'string' && post.metadata.date
 				}).map(function(post) {
 					return extend(post, post.metadata)
-				}),
+				}).reverse(),
 				posts: posts.reduce(function(posts, post) {
 					posts[removeDots(post.filename)] = post
 					return posts

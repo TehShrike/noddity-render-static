@@ -22,9 +22,9 @@ test('post list is properly in scope and in the proper order', function(t) {
 		state.render('post', post, { data: data }, function(err, html) {
 			t.notOk(err)
 			t.equal(html, ['<ol>',
-				'<li><a href="#!/post/file1.md">Some title</a></li>\n',
+				'<li><a href="#!/post/file2.md">Another title</a></li>\n',
 				'<li><a href="#!/post/herp">Even moar title</a></li>\n',
-				'<li><a href="#!/post/file2.md">Another title</a></li>',
+				'<li><a href="#!/post/file1.md">Some title</a></li>',
 				'</ol>'].join('\n'))
 			t.end()
 		})
@@ -50,9 +50,9 @@ test('post list is properly in scope in an embedded template, and the current fi
 			t.notOk(err)
 			t.equal(html, [
 					'<ol>',
-						'<li><a href="#!/post/file1.md">Some title</a></li>\n',
+						'<li><a href="#!/post/container">Container</a></li>\n',
 						'<li><a href="#!/post/file2.md">Another title</a></li>\n',
-						'<li><a href="#!/post/container">Container</a></li>',
+						'<li><a href="#!/post/file1.md">Some title</a></li>',
 					'</ol>containercontainer',].join('\n'))
 			t.end()
 		})
@@ -80,9 +80,10 @@ test('post list and current filename is set at top and embedded levels', functio
 	state.render('post', 'innocuous.md', { data: data }, function(err, html) {
 		t.notOk(err)
 		t.equal(html.replace('\n', ''), [
-				'Innocuous post <ol><li><a href="#!/post/innocuous.md">Innocuous post</a></li>',
-					'<li><a href="#!/post/file2.md">Another title</a></li>',
+				'Innocuous post <ol>',
 					'<li><a href="#!/post/container">Container</a></li>',
+					'<li><a href="#!/post/file2.md">Another title</a></li>',
+					'<li><a href="#!/post/innocuous.md">Innocuous post</a></li>',
 				'</ol> innocuous.md <p>not much here!</p> '].join(''))
 		t.end()
 	})
