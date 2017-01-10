@@ -21,7 +21,7 @@
   "homepage": "https://github.com/TehShrike/noddity-render-static#readme",
   "devDependencies": {
     "level-mem": "0.18.0",
-    "noddity-butler": "2.6.1",
+    "noddity-butler": "2.6.2",
     "noddity-linkifier": "~2.2.1",
     "tape": "4.6.3"
   },
