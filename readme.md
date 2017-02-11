@@ -3,6 +3,8 @@ Render static HTML from a Noddity post.
 
 # Usage
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/TehShrike/noddity-render-static.svg)](https://greenkeeper.io/)
+
 ```js
 var render = require('noddity-render-static')
 var Butler = require('noddity-butler')
