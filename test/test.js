@@ -189,3 +189,19 @@ test('invalid template', function(t) {
 		t.end()
 	})
 })
+
+test('an embedded template in the top-level template', function(t) {
+	var state = makeTestState()
+
+	state.retrieval.addPost('post', { title: 'TEMPLAAAATE', markdown: false }, '::2.md:: {{>current}}')
+	state.retrieval.addPost('file1.md', { title: 'Some title', date: new Date() }, 'This is a post that I *totally* wrote')
+	state.retrieval.addPost('2.md', { title: 'Some title', date: new Date() }, 'lol yeah')
+
+	state.retrieval.getPost('file1.md', function(err, post) {
+		state.render('post', post, {}, function(err, html) {
+			t.notOk(err, 'no error')
+			t.equal(html, '<p>lol yeah</p>\n <p>This is a post that I <em>totally</em> wrote</p>\n ')
+			t.end()
+		})
+	})
+})

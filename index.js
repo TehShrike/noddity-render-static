@@ -10,60 +10,64 @@ module.exports = function getRenderedPostWithTemplates(template, post, options, 
 
 	var convertToHtml = options.convertToHtml !== false
 	var replacer = makeReplacer()
+	var butler = options.butler
+	var linkifier = options.linkifier
 
-	loadPostObjects(options.butler, template, post, function(err, template, post) {
+	loadPostObjects(butler, template, post, function(err, template, post) {
 		if (err) return cb(err)
 
 		template = extend(template, {
 			content: template.content.replace('{{{html}}}', '{{>current}}')
 		})
 
-		options.data = options.data || {}
-		buildMapOfAllPostDependencies(post, options.linkifier, options.butler.getPost, function(err, mapOfPosts) {
-			if (err) {
-				cb(err)
-			} else {
-				augmentRootData(post, options.butler, function(err, data) {
-					if (err) {
-						cb(err)
-						return
-					}
+		buildMapOfAllPostDependencies(template, linkifier, butler.getPost, function(err, mapOfPosts) {
+			if (err) return cb(err)
 
-					var html = getHtmlWithPartials(template, options.linkifier, convertToHtml, mapOfPosts, replacer.replace)
-					var partials = turnPostsMapIntoPartialsObject(mapOfPosts, options.linkifier, convertToHtml, replacer.replace)
-					partials.current = getHtmlWithPartials(post, options.linkifier, convertToHtml, mapOfPosts, replacer.replace)
-
-					data.removeDots = removeDots
-
-					if (convertToHtml) {
-						Object.keys(partials).forEach(function(key) {
-							partials[key] = replacer.putBack(partials[key])
-						})
-						html = replacer.putBack(html)
-					}
-
-					try {
-						var ractive = new Ractive({
-							data: extend(data, options.data),
-							template: Ractive.parse(html),
-							partials: partials,
-							preserveWhitespace: true
-						})
-
-						var finalHtml = ractive.toHTML()
-						if (!convertToHtml) {
-							finalHtml = replacer.putBack(finalHtml)
+			buildMapOfAllPostDependencies(post, linkifier, butler.getPost, function(err, mapOfPosts) {
+				if (err) {
+					cb(err)
+				} else {
+					augmentRootData(post, butler, function(err, data) {
+						if (err) {
+							cb(err)
+							return
 						}
-					} catch (e) {
-						return cb(e)
-					}
+
+						var html = getHtmlWithPartials(template, linkifier, convertToHtml, mapOfPosts, replacer.replace)
+						var partials = turnPostsMapIntoPartialsObject(mapOfPosts, linkifier, convertToHtml, replacer.replace)
+						partials.current = getHtmlWithPartials(post, linkifier, convertToHtml, mapOfPosts, replacer.replace)
+
+						data.removeDots = removeDots
+
+						if (convertToHtml) {
+							Object.keys(partials).forEach(function(key) {
+								partials[key] = replacer.putBack(partials[key])
+							})
+							html = replacer.putBack(html)
+						}
+
+						try {
+							var ractive = new Ractive({
+								data: extend(data, options.data || {}),
+								template: Ractive.parse(html),
+								partials: partials,
+								preserveWhitespace: true
+							})
+
+							var finalHtml = ractive.toHTML()
+							if (!convertToHtml) {
+								finalHtml = replacer.putBack(finalHtml)
+							}
+						} catch (e) {
+							return cb(e)
+						}
 
 
-					cb(null, finalHtml)
-				})
-			}
+						cb(null, finalHtml)
+					})
+				}
+			}, mapOfPosts)
 		})
-
 	})
 }
 
