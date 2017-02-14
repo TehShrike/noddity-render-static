@@ -205,3 +205,26 @@ test('an embedded template in the top-level template', function(t) {
 		})
 	})
 })
+
+test('HTML entities inside a code block', function(t) {
+	var state = makeTestState()
+
+	state.retrieval.addPost('post', { title: 'TEMPLAAAATE', markdown: false }, '{{>current}}')
+	state.retrieval.addPost('file1.md', { title: 'Some title', date: new Date() }, `
+# This is a header
+
+<p>This is a legit paragraph</p>
+
+    <p>This is html inside of a code block</p>
+`)
+
+	state.render('post', 'file1.md', {}, function(err, html) {
+		t.notOk(err, 'no error')
+		t.equal(html, `<h1 id="this-is-a-header">This is a header</h1>
+<p>This is a legit paragraph</p>
+<pre><code>&lt;p&gt;This is html inside of a code block&lt;/p&gt;
+</code></pre>
+`)
+		t.end()
+	})
+})
