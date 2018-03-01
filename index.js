@@ -1,200 +1,160 @@
-var parse = require('noddity-template-parser')
-var runParallel = require('run-parallel')
-var dezalgo = require('dezalgo')
-var Ractive = require('ractive')
-var extend = require('xtend')
-var makeReplacer = require('./replacer')
+const parse = require(`noddity-template-parser`)
+const Ractive = require(`ractive`)
+const makeReplacer = require(`./replacer`)
+const pify = require(`pify`)
 
-module.exports = function getRenderedPostWithTemplates(template, post, options, cb) {
-	cb = dezalgo(cb)
+const merge = (...objects) => Object.assign({}, ...objects)
 
-	var convertToHtml = options.convertToHtml !== false
-	var replacer = makeReplacer()
-	var butler = options.butler
-	var linkifier = options.linkifier
+module.exports = async function getRenderedPostWithTemplates(templateArg, postArg, options) {
+	const convertToHtml = options.convertToHtml !== false
+	const replacer = makeReplacer()
+	const butler = pify(options.butler)
+	const linkifier = options.linkifier
 
-	loadPostObjects(butler, template, post, function(err, template, post) {
-		if (err) return cb(err)
-
-		template = extend(template, {
-			content: template.content.replace('{{{html}}}', '{{>current}}')
-		})
-
-		buildMapOfAllPostDependencies(template, linkifier, butler.getPost, function(err, mapOfPosts) {
-			if (err) return cb(err)
-
-			buildMapOfAllPostDependencies(post, linkifier, butler.getPost, function(err, mapOfPosts) {
-				if (err) {
-					cb(err)
-				} else {
-					augmentRootData(post, butler, function(err, data) {
-						if (err) {
-							cb(err)
-							return
-						}
-
-						var html = getHtmlWithPartials(template, linkifier, convertToHtml, mapOfPosts, replacer.replace)
-						var partials = turnPostsMapIntoPartialsObject(mapOfPosts, linkifier, convertToHtml, replacer.replace)
-						partials.current = getHtmlWithPartials(post, linkifier, convertToHtml, mapOfPosts, replacer.replace)
-
-						data.removeDots = removeDots
-
-						if (convertToHtml) {
-							Object.keys(partials).forEach(function(key) {
-								partials[key] = replacer.putBack(partials[key])
-							})
-							html = replacer.putBack(html)
-						}
-
-						try {
-							var ractive = new Ractive({
-								data: extend(data, options.data || {}),
-								template: Ractive.parse(html),
-								partials: partials,
-								preserveWhitespace: true
-							})
-
-							var finalHtml = ractive.toHTML()
-							if (!convertToHtml) {
-								finalHtml = replacer.putBack(finalHtml)
-							}
-						} catch (e) {
-							return cb(e)
-						}
-
-
-						cb(null, finalHtml)
-					})
-				}
-			}, mapOfPosts)
-		})
+	const [ loadedTemplate, post ] = await loadPostObjects(butler, templateArg, postArg)
+	const template = merge(loadedTemplate, {
+		content: loadedTemplate.content.replace(`{{{html}}}`, `{{>current}}`),
 	})
+
+	const initialmapOfPosts = await buildMapOfAllPostDependencies(template, linkifier, butler.getPost)
+	const mapOfPosts = await buildMapOfAllPostDependencies(post, linkifier, butler.getPost, initialmapOfPosts)
+	const data = await augmentRootData(post, butler)
+
+
+	let html = getHtmlWithPartials(template, linkifier, convertToHtml, mapOfPosts, replacer.replace)
+	const partials = turnPostsMapIntoPartialsObject(mapOfPosts, linkifier, convertToHtml, replacer.replace)
+	partials.current = getHtmlWithPartials(post, linkifier, convertToHtml, mapOfPosts, replacer.replace)
+
+	data.removeDots = removeDots
+
+	if (convertToHtml) {
+		Object.keys(partials).forEach(key => {
+			partials[key] = replacer.putBack(partials[key])
+		})
+		html = replacer.putBack(html)
+	}
+
+	const ractive = new Ractive({
+		data: merge(data, options.data),
+		template: Ractive.parse(html),
+		partials,
+		preserveWhitespace: true,
+	})
+
+	console.log(`convertToHtml is`, convertToHtml)
+
+	return convertToHtml
+		? ractive.toHTML()
+		: replacer.putBack(ractive.toHTML())
 }
 
-function loadPostObjects(butler, template, post, cb) {
-	runParallel({
-		template: loadPostObjectFromStringOrObject.bind(null, butler, template),
-		post: loadPostObjectFromStringOrObject.bind(null, butler, post)
-	}, function(err, postObjects) {
-		cb(err, postObjects.template, postObjects.post)
-	})
+async function loadPostObjects(butler, template, post) {
+	return Promise.all([
+		loadPostObjectFromStringOrObject(butler, template),
+		loadPostObjectFromStringOrObject(butler, post),
+	])
 }
 
-function loadPostObjectFromStringOrObject(butler, postOrFilename, cb) {
+async function loadPostObjectFromStringOrObject(butler, postOrFilename) {
 	if (!postOrFilename) {
-		cb(new Error('That\'s not a post!'))
-	} else if (typeof postOrFilename === 'string') {
-		butler.getPost(postOrFilename, cb)
+		throw new Error(`That's not a post!`)
+	} else if (typeof postOrFilename === `string`) {
+		return butler.getPost(postOrFilename)
 	} else {
-		cb(null, postOrFilename)
+		return postOrFilename
 	}
 }
 
 function getContainedFileNames(ast) {
-	return Object.keys(ast.filter(function(chunk) {
-		return chunk.type === 'template'
-	}).map(function(chunk) {
-		return chunk.filename
-	}).reduce(function(uniqueMap, filename) {
-		uniqueMap[filename] = true
-		return uniqueMap
-	}, {}))
+	return Object.keys(
+		ast.filter(
+			chunk => chunk.type === `template`
+		).map(
+			chunk => chunk.filename
+		).reduce((uniqueMap, filename) => {
+			uniqueMap[filename] = true
+			return uniqueMap
+		}, {})
+	)
 }
 
-function buildMapOfAllPostDependencies(post, linkifier, getPost, cb, map) {
-	map = map || {}
-	cb = dezalgo(cb)
-	var ast = parse(post, linkifier)
+async function buildMapOfAllPostDependencies(post, linkifier, getPost, map = {}) {
+	const ast = parse(post, linkifier)
 
-	var needToFetch = getContainedFileNames(ast).filter(function(filename) {
-		return !map[filename]
-	})
+	const needToFetch = getContainedFileNames(ast)
+		.filter(filename => !map[filename])
 
 	if (needToFetch.length === 0) {
-		cb(null, map)
+		return map
 	} else {
-		var postGetters = needToFetch.map(function(filename) {
-			return getPost.bind(null, filename)
+		const posts = await Promise.all(
+			needToFetch.map(filename => getPost(filename))
+		)
+		const relevantPosts = posts.filter(post => !map[post.filename])
+
+		relevantPosts.forEach(post => {
+			map[post.filename] = post
 		})
-		runParallel(postGetters, function(err, posts) {
-			if (err) {
-				cb(err)
-			} else {
-				posts = posts.filter(function(post) {
-					return !map[post.filename]
-				})
 
-				posts.forEach(function(post) {
-					map[post.filename] = post
-				})
+		await Promise.all(
+			relevantPosts.map(
+				post => buildMapOfAllPostDependencies(post, linkifier, getPost, map)
+			)
+		)
 
-				var buildAllDependencies = posts.map(function(post) {
-					return function(cb) {
-						buildMapOfAllPostDependencies(post, linkifier, getPost, cb, map)
-					}
-				})
-
-				runParallel(buildAllDependencies, function(err) {
-					cb(err, map)
-				})
-			}
-		})
+		return map
 	}
 }
 
 function getHtmlWithPartials(post, linkifier, convertToHtml, postsMap, replace) {
-	var ast = parse(post, linkifier, { convertToHtml: convertToHtml })
+	const ast = parse(post, linkifier, { convertToHtml })
 
-	return ast.reduce(function(html, chunk) {
-		if (chunk.type === 'string') {
+	return ast.reduce((html, chunk) => {
+		if (chunk.type === `string`) {
 			return html + replace(chunk.value)
-		} else if (chunk.type === 'template') {
-			var filename = chunk.filename
-			var args = chunk.arguments
-			var metadata = postsMap[filename] ? postsMap[filename].metadata : {}
-			var dataOnTemplateScope = extend(metadata, args)
-			return html + '{{>' + filenameToPartialName(filename) + ' ' + JSON.stringify(dataOnTemplateScope) + ' }}'
+		} else if (chunk.type === `template`) {
+			const filename = chunk.filename
+			const args = chunk.arguments
+			const metadata = postsMap[filename] ? postsMap[filename].metadata : {}
+			const dataOnTemplateScope = merge(metadata, args)
+			return html + `{{>` + filenameToPartialName(filename) + ` ` + JSON.stringify(dataOnTemplateScope) + ` }}`
 		}
 
 		return html
-	}, '')
+	}, ``)
 }
 
 function turnPostsMapIntoPartialsObject(mapOfPosts, linkifier, convertToHtml, replace) {
-	return Object.keys(mapOfPosts).reduce(function(partialsObject, filename) {
-		var post = mapOfPosts[filename]
+	return Object.keys(mapOfPosts).reduce((partialsObject, filename) => {
+		const post = mapOfPosts[filename]
 		partialsObject[filenameToPartialName(post.filename)] = getHtmlWithPartials(post, linkifier, convertToHtml, mapOfPosts, replace)
 		return partialsObject
 	}, {})
 }
 
 function filenameToPartialName(filename) {
-	return '_' + filename.replace(/\./g, '_')
+	return `_` + filename.replace(/\./g, `_`)
 }
 
-function augmentRootData(post, butler, cb) {
-	butler.getPosts(function(err, posts) {
-		if (err) {
-			cb(err)
-		} else {
-			cb(null, extend(post.metadata, {
-				metadata: post.metadata
-			}, {
-				postList: posts.filter(function(post) {
-					return typeof post.metadata.title === 'string' && post.metadata.date
-				}).map(function(post) {
-					return extend(post, post.metadata)
-				}).reverse(),
-				posts: posts.reduce(function(posts, post) {
-					posts[removeDots(post.filename)] = post
-					return posts
-				}, {}),
-				current: post.filename
-			}))
-		}
-	})
+async function augmentRootData(post, butler) {
+	const posts = await butler.getPosts()
+
+	const specialData = {
+		postList: posts.filter(post => typeof post.metadata.title === `string` && post.metadata.date).map(post => merge(post, post.metadata)).reverse(),
+		posts: posts.reduce((posts, post) => {
+			posts[removeDots(post.filename)] = post
+			return posts
+		}, {}),
+		current: post.filename,
+	}
+
+	return merge(
+		post.metadata,
+		{ metadata: post.metadata },
+		specialData
+	)
 }
 
 function removeDots(str) {
-	return str.replace(/\./g, '')
+	return str.replace(/\./g, ``)
 }

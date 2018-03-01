@@ -1,30 +1,32 @@
-var TestRetrieval = require('./retrieval-stub.js')
-var staticRenderer = require('../../index.js')
-var levelmem = require('level-mem')
-var Butler = require('noddity-butler')
-var Linkify = require('noddity-linkifier')
-var extend = require('xtend')
+const TestRetrieval = require(`./retrieval-stub.js`)
+const staticRenderer = require(`../../index.js`)
+const levelmem = require(`level-mem`)
+const Butler = require(`noddity-butler`)
+const Linkify = require(`noddity-linkifier`)
+const pify = require(`pify`)
 
 module.exports = function testState() {
-	var retrieval = new TestRetrieval()
-	var db = levelmem('no location', {
-		valueEncoding: require('noddity-butler/test/retrieval/encoding.js')
+	const retrieval = new TestRetrieval()
+	const db = levelmem(`no location`, {
+		valueEncoding: require(`noddity-butler/test/retrieval/encoding.js`),
 	})
-	var butler = new Butler(retrieval, db, {
-		refreshEvery: 100
+	const butler = new Butler(retrieval, db, {
+		refreshEvery: 100,
 	})
-	var linkifier = new Linkify('#/prefix')
+	const linkifier = new Linkify(`#/prefix`)
 
-	function render(template, post, options, cb) {
-		staticRenderer(template, post, extend({
-			butler: butler,
-			linkifier: linkifier,
-			data: {}
-		}, options), cb)
+	async function render(template, post, optionsArg) {
+		const options = Object.assign({
+			butler,
+			linkifier,
+			data: {},
+		}, optionsArg)
+
+		return staticRenderer(template, post, options)
 	}
 
 	return {
-		retrieval: retrieval,
-		render: render
+		retrieval: pify(retrieval),
+		render,
 	}
 }

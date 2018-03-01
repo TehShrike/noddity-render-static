@@ -1,6 +1,9 @@
 {
   "name": "noddity-render-static",
   "version": "2.4.3",
+  "engines": {
+    "node": ">=8"
+  },
   "description": "Generate static HTML from Noddity posts",
   "main": "index.js",
   "scripts": {
@@ -26,11 +29,9 @@
     "tape": "4.6.3"
   },
   "dependencies": {
-    "dezalgo": "1.0.3",
     "noddity-template-parser": "~1.1.1",
+    "pify": "~3.0.0",
     "ractive": "~0.8.14",
-    "random-uuid-v4": "0.0.6",
-    "run-parallel": "1.1.6",
-    "xtend": "4.0.1"
+    "random-uuid-v4": "0.0.6"
   }
 }
