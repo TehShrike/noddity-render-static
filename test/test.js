@@ -12,7 +12,7 @@ test('embedded templates, passing in both posts as post objects', function(t) {
 	state.retrieval.addPost('post', { title: 'TEMPLAAAATE', markdown: false }, '{{>current}}')
 	state.retrieval.addPost('file1.md', { title: 'Some title', date: new Date() }, 'This is a ::file2.md:: post that I *totally* wrote')
 	state.retrieval.addPost('file2.md', { title: 'Some title', date: new Date() }, 'lol yeah ::herp|wat:: ::herp|huh::')
-	state.retrieval.addPost('herp', { title: 'Some title', date: new Date(), markdown: false }, 'lookit {{1}}')
+	state.retrieval.addPost('herp', { title: 'Some title', date: new Date(), markdown: false }, 'lookit {{this.1}}')
 
 	state.retrieval.getPost('file1.md', function(err, post) {
 		state.retrieval.getPost('post', function(err, template) {
@@ -31,7 +31,7 @@ test('three markdown files deep', function(t) {
 	state.retrieval.addPost('post', { title: 'TEMPLAAAATE', markdown: false }, '{{>current}}')
 	state.retrieval.addPost('file1.md', { title: 'Some title', date: new Date() }, 'This is a ::file2.md:: post that I *totally* wrote')
 	state.retrieval.addPost('file2.md', { title: 'Some title', date: new Date() }, 'lol yeah ::file3.md|wat:: ::file3.md|huh::')
-	state.retrieval.addPost('file3.md', { title: 'Some title', date: new Date() }, 'lookit {{1}}')
+	state.retrieval.addPost('file3.md', { title: 'Some title', date: new Date() }, 'lookit {{this.1}}')
 
 	state.retrieval.getPost('file1.md', function(err, post) {
 		state.render('post', post, {}, function(err, html) {
@@ -64,7 +64,7 @@ test('loading based on file name', function(t) {
 	state.retrieval.addPost('post', { title: 'TEMPLAAAATE', markdown: false }, '{{>current}}')
 	state.retrieval.addPost('file1.md', { title: 'Some title', date: new Date() }, 'This is a ::file2.md:: post that I *totally* wrote')
 	state.retrieval.addPost('file2.md', { title: 'Some title', date: new Date() }, 'lol yeah ::herp|wat:: ::herp|huh::')
-	state.retrieval.addPost('herp', { title: 'Some title', date: new Date(), markdown: false }, 'lookit {{1}}')
+	state.retrieval.addPost('herp', { title: 'Some title', date: new Date(), markdown: false }, 'lookit {{this.1}}')
 
 	state.render('post', 'file1.md', {}, function(err, html) {
 		t.notOk(err, 'no error')
@@ -200,7 +200,7 @@ test('an embedded template in the top-level template', function(t) {
 	state.retrieval.getPost('file1.md', function(err, post) {
 		state.render('post', post, {}, function(err, html) {
 			t.notOk(err, 'no error')
-			t.equal(html, '<p>lol yeah</p>\n <p>This is a post that I <em>totally</em> wrote</p>\n ')
+			t.equal(html, '<p>lol yeah</p>\n <p>This is a post that I <em>totally</em> wrote</p>\n')
 			t.end()
 		})
 	})

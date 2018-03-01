@@ -84,7 +84,7 @@ test('post list and current filename is set at top and embedded levels', functio
 					'<li><a href="#!/post/container">Container</a></li>',
 					'<li><a href="#!/post/file2.md">Another title</a></li>',
 					'<li><a href="#!/post/innocuous.md">Innocuous post</a></li>',
-				'</ol> innocuous.md <p>not much here!</p> '].join(''))
+				'</ol> innocuous.md <p>not much here!</p>'].join(''))
 		t.end()
 	})
 })
