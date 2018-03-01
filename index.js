@@ -41,8 +41,6 @@ module.exports = async function getRenderedPostWithTemplates(templateArg, postAr
 		preserveWhitespace: true,
 	})
 
-	console.log(`convertToHtml is`, convertToHtml)
-
 	return convertToHtml
 		? ractive.toHTML()
 		: replacer.putBack(ractive.toHTML())
