@@ -36,7 +36,7 @@ console.log(html)
 	- `butler`: a [Noddity Butler](https://www.npmjs.com/package/noddity-butler)
 	- `linkifier`: a [Noddity Linkifier](https://www.npmjs.com/package/noddity-linkifier)
 	- `data`: Any properties on the `data` object will be made available to the templates.
-	- `convertToHtml`: don't turn the markdown into html
+	- `convertToHtml`: If `false`, assumes that the input files is already HTML and won't run the markdown conversion.  Defaults to `true`
 
 # Values accessible in Ractive expressions
 
