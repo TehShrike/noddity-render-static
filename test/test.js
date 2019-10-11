@@ -127,6 +127,17 @@ test(`escaping characters it shouldn't when converting to markdown`, async t => 
 	].join(`\n\n`))
 })
 
+test(`mediawiki style links work`, async t => {
+	const state = makeTestState()
+
+	state.retrieval.addPost('post', { title: 'TEMPLAAAATE', markdown: false }, '{{>current}}')
+	state.retrieval.addPost('file1.md', { title: 'Some title', date: new Date() },
+		'This `[[some-page-you-want-to-link-to.md|wiki-style internal links]]` turns into [[some-page-you-want-to-link-to.md|wiki-style internal links]]')
+	const expect = `<p>This <code>[[some-page-you-want-to-link-to.md|wiki-style internal links]]</code> turns into <a href="#/prefixsome-page-you-want-to-link-to.md">wiki-style internal links</a></p>`
+	const html = await state.render(`post`, `file1.md`, {})
+	t.equal(html, expect)
+})
+
 test(`a post on noddity.com with a link in a code block`, async t => {
 	const state = makeTestState()
 
